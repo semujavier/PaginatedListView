@@ -21,14 +21,14 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
     private let pageSize = 10
     private var canLoadMore = true
     
-    private let fetchBlock: (_ page: Int, _ pageSize: Int) async throws -> [Item]
-    private let searchBlock: (_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item]
+    public var fetchBlock: ((_ page: Int, _ pageSize: Int) async throws -> [Item])?
+    public var searchBlock: ((_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item])?
     
     private var searchTask: Task<Void, Never>?
 
     public init(
-        fetchBlock: @escaping (_ page: Int, _ pageSize: Int) async throws -> [Item],
-        searchBlock: @escaping (_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item]
+        fetchBlock: ((_ page: Int, _ pageSize: Int) async throws -> [Item])? = nil,
+        searchBlock: ((_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item])? = nil
     ) {
         self.fetchBlock = fetchBlock
         self.searchBlock = searchBlock
@@ -49,8 +49,10 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
             do {
                 let newItems: [Item]
                 if searchQuery.isEmpty {
+                    guard let fetchBlock else { return }
                     newItems = try await fetchBlock(currentPage, pageSize)
                 } else {
+                    guard let searchBlock else { return }
                     newItems = try await searchBlock(searchQuery, currentPage, pageSize)
                 }
 
