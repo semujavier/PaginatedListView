@@ -14,13 +14,17 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
     @Published public var items: [Item] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
+    @Published private(set) var debouncedSearchQuery: String = ""
     @Published public var searchQuery: String = ""
     
     private var currentPage = 1
     private let pageSize = 10
     private var canLoadMore = true
+    
     private let fetchBlock: (_ page: Int, _ pageSize: Int) async throws -> [Item]
     private let searchBlock: (_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item]
+    
+    private var searchTask: Task<Void, Never>?
 
     public init(
         fetchBlock: @escaping (_ page: Int, _ pageSize: Int) async throws -> [Item],
@@ -63,13 +67,24 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
         }
     
     public func loadMoreIfNeeded(currentIndex: Int) async {
-        guard currentIndex == items.count - 1 else { return }
+        guard canLoadMore, currentIndex == items.count - 1 else { return }
         await fetchItems()
     }
     
     public func updateSearchQuery(_ query: String) async {
+        searchTask?.cancel()
         searchQuery = query
-        await fetchItems(reset: true) 
+        
+        searchTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                if !Task.isCancelled {
+                    await fetchItems(reset: true)
+                }
+            } catch {
+                print("Task cancelled or sleep interrupted: \(error)")
+            }
+        }
     }
 
 }

@@ -8,57 +8,61 @@
 import SwiftUI
 
 public struct PaginatedListView<Item: SendableItem, Content>: View where Content: View {
-    @ObservedObject var viewModel: PaginatedListViewModel<Item>
+    @StateObject private var viewModel: PaginatedListViewModel<Item>
     @State private var searchText: String = ""
     let content: (Item) -> Content
     
     public init(viewModel: PaginatedListViewModel<Item>, @ViewBuilder content: @escaping (Item) -> Content) {
-        self.viewModel = viewModel
+        _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content
     }
-
+    
     public var body: some View {
         VStack {
-            TextField("Buscar...", text: $searchText, onCommit: {
-                Task {
-                    await viewModel.updateSearchQuery(searchText)
+            TextField("Buscar...", text: $searchText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal)
+                .onChange(of: searchText) { newValue in
+                    Task {
+                        await viewModel.updateSearchQuery(newValue)
+                    }
                 }
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding()
+                .background(Color(.systemBackground))
+                .zIndex(1)
             
-            if viewModel.isLoading && viewModel.items.isEmpty {
-                ProgressView()
-            } else if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-            } else if viewModel.items.isEmpty {
-                Text("No items available.")
-                    .foregroundColor(.gray)
-                    .font(.subheadline)
-            } else {
-                List {
-                    ForEach(viewModel.items.indices, id: \.self) { index in
-                        content(viewModel.items[index])
-                            .onAppear {
-                                Task {
-                                    await viewModel.loadMoreIfNeeded(currentIndex: index)
-                                }
-                            }
-                    }
-                    
-                    if viewModel.isLoading {
+            ScrollView {
+                LazyVStack {
+                    if viewModel.isLoading && viewModel.items.isEmpty {
                         ProgressView()
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                    } else if viewModel.items.isEmpty {
+                        Text("No items available.")
+                            .foregroundColor(.gray)
+                            .font(.subheadline)
+                    } else {
+                        ForEach(viewModel.items.indices, id: \.self) { index in
+                            content(viewModel.items[index])
+                                .onAppear {
+                                    Task {
+                                        await viewModel.loadMoreIfNeeded(currentIndex: index)
+                                    }
+                                }
+                        }
+                        if viewModel.isLoading {
+                            ProgressView()
+                        }
                     }
                 }
-                .refreshable {
-                    await viewModel.fetchItems(reset: true)
-                }
+                .padding(.horizontal)
+            }
+            .refreshable {
+                await viewModel.fetchItems(reset: true)
             }
         }
     }
 }
-
 struct PaginatedListView_Previews: PreviewProvider {
     static var previews: some View {
         let mockItems: [MockItem] = (1...20).map { MockItem(id: UUID(), title: "Item \($0)") }
