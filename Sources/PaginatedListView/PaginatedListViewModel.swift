@@ -20,6 +20,7 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
     private var currentPage = 1
     private let pageSize = 10
     private var canLoadMore = true
+    private var lastFetchCount = 0
     
     public var fetchBlock: ((_ page: Int, _ pageSize: Int) async throws -> [Item])?
     public var searchBlock: ((_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item])?
@@ -44,6 +45,7 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
                 currentPage = 1
                 canLoadMore = true
                 items.removeAll()
+                lastFetchCount = 0
             }
 
             do {
@@ -55,6 +57,8 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
                     guard let searchBlock else { return }
                     newItems = try await searchBlock(searchQuery, currentPage, pageSize)
                 }
+                
+                lastFetchCount = newItems.count
 
                 if newItems.isEmpty {
                     canLoadMore = false
@@ -69,7 +73,7 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
         }
     
     public func loadMoreIfNeeded(currentIndex: Int) async {
-        guard canLoadMore, currentIndex == items.count - 1 else { return }
+        guard canLoadMore, lastFetchCount == pageSize, currentIndex == items.count - 1 else { return }
         await fetchItems()
     }
     
