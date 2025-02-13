@@ -78,14 +78,11 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
         searchQuery = query
         
         searchTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
-                if !Task.isCancelled {
-                    await fetchItems(reset: true)
-                }
-            } catch {
-                print("Task cancelled or sleep interrupted: \(error)")
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if !Task.isCancelled {
+                await fetchItems(reset: true)
             }
+            
         }
     }
 
