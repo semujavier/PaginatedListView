@@ -65,7 +65,7 @@ public struct PaginatedListView<Item: SendableItem, Content>: View where Content
 }
 struct PaginatedListView_Previews: PreviewProvider {
     static var previews: some View {
-        let mockItems: [MockItem] = (1...20).map { MockItem(id: UUID(), title: "Item \($0)") }
+        let mockItems: [MockItem] = (1...20).map { MockItem(id: $0, title: "Item \($0)") }
         
         let viewModel = PaginatedListViewModel<MockItem> (
             fetchBlock: { page, pageSize in
@@ -92,7 +92,6 @@ struct PaginatedListView_Previews: PreviewProvider {
             HStack {
                 Text(item.title)
                 Spacer()
-                Image(systemName: "chevron.right")
             }
             .padding()
         }

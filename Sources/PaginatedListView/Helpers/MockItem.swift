@@ -8,6 +8,6 @@
 import Foundation
 
 struct MockItem: SendableItem, Identifiable {
-    let id: UUID
+    let id: Int
     let title: String
 }
