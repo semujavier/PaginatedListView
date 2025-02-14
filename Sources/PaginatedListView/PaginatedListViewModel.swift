@@ -18,7 +18,7 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
     @Published public var searchQuery: String = ""
     
     private var currentPage = 1
-    private let pageSize = 10
+    private let pageSize: Int
     private var canLoadMore = true
     private var lastFetchCount = 0
     
@@ -28,9 +28,11 @@ open class PaginatedListViewModel<Item: SendableItem>: ObservableObject {
     private var searchTask: Task<Void, Never>?
 
     public init(
+        pageSize: Int = 10,
         fetchBlock: ((_ page: Int, _ pageSize: Int) async throws -> [Item])? = nil,
         searchBlock: ((_ query: String, _ page: Int, _ pageSize: Int) async throws -> [Item])? = nil
     ) {
+        self.pageSize = pageSize
         self.fetchBlock = fetchBlock
         self.searchBlock = searchBlock
     }
